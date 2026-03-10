@@ -1,5 +1,8 @@
 import click
 import json
+import os
+import subprocess
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -9,14 +12,61 @@ from spatialbench import EvalRunner, TestCase
 from latch_eval_tools.harness import run_minisweagent_task, run_claudecode_task, run_openaicodex_task, batch_download_datasets
 
 
+def run_local_code_task(task_prompt, work_dir, script_path=None, **kwargs):
+    """
+    Run a local Python script to solve the task.
+    
+    The script should:
+    1. Read task_prompt from task_prompt.txt or environment variable TASK_PROMPT
+    2. Process data in work_dir (current directory when script runs)
+    3. Write eval_answer.json to work_dir
+    
+    Args:
+        task_prompt: The task description
+        work_dir: Path to workspace directory
+        script_path: Path to Python script to execute
+    """
+    work_dir = Path(work_dir)
+    script_path = Path(script_path) if script_path else None
+    
+    if not script_path or not script_path.exists():
+        raise ValueError(f"Script path does not exist: {script_path}")
+    
+    # Write task prompt to a file for the script to read
+    task_file = work_dir / "task_prompt.txt"
+    task_file.write_text(task_prompt)
+    
+    # Execute the script with work_dir as current directory
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        cwd=str(work_dir),
+        capture_output=True,
+        text=True,
+        env={**os.environ, "TASK_PROMPT": task_prompt, "WORK_DIR": str(work_dir)}
+    )
+    
+    if result.returncode != 0:
+        raise RuntimeError(f"Script failed with return code {result.returncode}:\n{result.stderr}")
+    
+    # Check if eval_answer.json was created
+    answer_file = work_dir / "eval_answer.json"
+    if not answer_file.exists():
+        raise ValueError(f"Script did not create eval_answer.json in {work_dir}")
+    
+    # Read and return the answer
+    answer = json.loads(answer_file.read_text())
+    return answer
+
+
 agent_registry = {
     "minisweagent": ("mini-swe-agent", run_minisweagent_task),
     "claudecode": ("Claude Code", run_claudecode_task),
     "openaicodex": ("OpenAI Codex", run_openaicodex_task),
+    "local": ("Local Code", run_local_code_task),
 }
 
 
-def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None):
+def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None, script_path=None):
     eval_file = Path(eval_file_path)
     start_time = time.time()
 
@@ -24,8 +74,12 @@ def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None):
         raise ValueError(f"Unknown agent: {agent}. Available agents: {list(agent_registry.keys())}")
 
     _, agent_task = agent_registry[agent]
+    
     def agent_fn(task_prompt, work_dir):
-        return agent_task(task_prompt, work_dir, model_name=model)
+        if agent == "local":
+            return agent_task(task_prompt, work_dir, script_path=script_path)
+        else:
+            return agent_task(task_prompt, work_dir, model_name=model)
 
     try:
         runner = EvalRunner(eval_file, keep_workspace=keep_workspace, run_id=run_id)
@@ -36,7 +90,7 @@ def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None):
             "eval": eval_file.name,
             "passed": result.get("passed"),
             "test_id": result.get("test_id"),
-            "model": model,
+            "model": model or script_path or "local",
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "duration_s": round(duration, 2),
         }
@@ -51,7 +105,7 @@ def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None):
             "eval": eval_file.name,
             "passed": False,
             "error": str(e),
-            "model": model,
+            "model": model or script_path or "local",
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "duration_s": round(duration, 2),
         }
@@ -67,7 +121,8 @@ def main():
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--agent", type=click.Choice(list(agent_registry.keys())), default=None, help="Agent to use for evaluation")
 @click.option("--model", default=None, help="Model name for agent")
-def run(eval_path, keep_workspace, verbose, agent, model):
+@click.option("--script-path", type=click.Path(exists=True), help="Path to Python script (for local agent)")
+def run(eval_path, keep_workspace, verbose, agent, model, script_path):
     click.echo(f"Running evaluation: {eval_path}")
 
     runner = EvalRunner(eval_path, keep_workspace=keep_workspace)
@@ -83,14 +138,26 @@ def run(eval_path, keep_workspace, verbose, agent, model):
         click.echo("  runner.run(agent_function=my_agent)")
         click.echo("\nOr use mini-swe-agent:")
         click.echo("  spatialbench run evals/qc/seeker_qc_basic.json --agent minisweagent")
+        click.echo("\nOr use local code:")
+        click.echo("  spatialbench run evals/qc/seeker_qc_basic.json --agent local --script-path my_script.py")
         result = runner.run()
         return
 
     agent_name, agent_task = agent_registry[agent]
-    click.echo(f"Using {agent_name}{f' with model: {model}' if model else ''}")
+    
+    if agent == "local":
+        if not script_path:
+            click.echo("Error: --script-path is required when using --agent local", err=True)
+            return
+        click.echo(f"Using {agent_name} with script: {script_path}")
+    else:
+        click.echo(f"Using {agent_name}{f' with model: {model}' if model else ''}")
 
     def agent_fn(task_prompt, work_dir):
-        return agent_task(task_prompt, work_dir, model_name=model)
+        if agent == "local":
+            return agent_task(task_prompt, work_dir, script_path=script_path)
+        else:
+            return agent_task(task_prompt, work_dir, model_name=model)
 
     result = runner.run(agent_function=agent_fn)
 
@@ -103,10 +170,11 @@ def run(eval_path, keep_workspace, verbose, agent, model):
 @click.argument("eval_dir", type=click.Path(exists=True))
 @click.option("--agent", type=click.Choice(list(agent_registry.keys())), default=None, help="Agent to use for evaluation")
 @click.option("--model", default=None, help="Model name for agent")
+@click.option("--script-path", type=click.Path(exists=True), help="Path to Python script (for local agent)")
 @click.option("--output", "-o", type=click.Path(), help="Output directory for results")
 @click.option("--parallel", "-p", type=int, default=1, help="Number of parallel workers")
 @click.option("--keep-workspace", is_flag=True, help="Keep workspace after each eval")
-def batch(eval_dir, agent, model, output, parallel, keep_workspace):
+def batch(eval_dir, agent, model, script_path, output, parallel, keep_workspace):
     click.echo(f"Running batch evaluations from: {eval_dir}")
 
     run_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
@@ -122,7 +190,11 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
         return
 
     if agent is None or agent not in agent_registry:
-        click.echo("\nNote: No agent specified. Use --agent minisweagent to run evaluations.")
+        click.echo("\nNote: No agent specified. Use --agent minisweagent or --agent local to run evaluations.")
+        return
+
+    if agent == "local" and not script_path:
+        click.echo("Error: --script-path is required when using --agent local", err=True)
         return
 
     click.echo("\n" + "=" * 80)
@@ -162,7 +234,7 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
 
         with ProcessPoolExecutor(max_workers=parallel) as executor:
             future_to_eval = {
-                executor.submit(_run_single_eval, str(eval_file), agent, model, keep_workspace, run_id): eval_file
+                executor.submit(_run_single_eval, str(eval_file), agent, model, keep_workspace, run_id, script_path): eval_file
                 for eval_file in eval_files
             }
 
@@ -197,7 +269,10 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
 
                 _, agent_task = agent_registry[agent]
                 def agent_fn(task_prompt, work_dir):
-                    return agent_task(task_prompt, work_dir, model_name=model)
+                    if agent == "local":
+                        return agent_task(task_prompt, work_dir, script_path=script_path)
+                    else:
+                        return agent_task(task_prompt, work_dir, model_name=model)
 
                 result = runner.run(agent_function=agent_fn)
                 duration = time.time() - start_time
@@ -206,7 +281,7 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
                     "eval": eval_file.name,
                     "passed": result.get("passed"),
                     "test_id": result.get("test_id"),
-                    "model": model,
+                    "model": model or script_path or "local",
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                     "duration_s": round(duration, 2),
                 }
@@ -226,7 +301,7 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
                     "eval": eval_file.name,
                     "passed": False,
                     "error": str(e),
-                    "model": model,
+                    "model": model or script_path or "local",
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                     "duration_s": round(duration, 2),
                 })
@@ -266,13 +341,15 @@ def batch(eval_dir, agent, model, output, parallel, keep_workspace):
         click.echo(f"Average steps per eval: {avg_steps:.1f}")
     if model:
         click.echo(f"Model: {model}")
+    elif script_path:
+        click.echo(f"Script: {script_path}")
 
     if output:
         output_path = Path(output)
         output_path.mkdir(parents=True, exist_ok=True)
 
         metadata = {
-            "model": model,
+            "model": model or script_path or "local",
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "eval_dir": str(eval_dir),
             "total_evals": len(results),
