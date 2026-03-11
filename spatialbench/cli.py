@@ -12,7 +12,7 @@ from spatialbench import EvalRunner, TestCase
 from latch_eval_tools.harness import run_minisweagent_task, run_claudecode_task, run_openaicodex_task, batch_download_datasets
 
 
-def run_local_code_task(task_prompt, work_dir, script_path=None, **kwargs):
+def run_local_code_task(task_prompt, work_dir, script_path=None, grader_type = None, **kwargs):
     """
     Run a local Python script to solve the task.
     
@@ -55,6 +55,8 @@ def run_local_code_task(task_prompt, work_dir, script_path=None, **kwargs):
     
     # Read and return the answer
     answer = json.loads(answer_file.read_text())
+    if grader_type == "multiple_choice":
+        return {"answer": answer}
     return answer
 
 
@@ -68,6 +70,8 @@ agent_registry = {
 
 def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None, script_path=None):
     eval_file = Path(eval_file_path)
+    eval_data = json.loads(eval_file.read_text())
+
     start_time = time.time()
 
     if agent not in agent_registry:
@@ -77,7 +81,8 @@ def _run_single_eval(eval_file_path, agent, model, keep_workspace, run_id=None, 
     
     def agent_fn(task_prompt, work_dir):
         if agent == "local":
-            return agent_task(task_prompt, work_dir, script_path=script_path)
+            grader_type = eval_data["grader"].get("type")
+            return agent_task(task_prompt, work_dir, script_path=script_path, grader_type = grader_type)
         else:
             return agent_task(task_prompt, work_dir, model_name=model)
 
@@ -154,9 +159,12 @@ def run(eval_path, keep_workspace, verbose, agent, model, script_path):
     else:
         click.echo(f"Using {agent_name}{f' with model: {model}' if model else ''}")
 
+    eval_data = json.loads(Path(eval_path).read_text())
+
     def agent_fn(task_prompt, work_dir):
         if agent == "local":
-            return agent_task(task_prompt, work_dir, script_path=script_path)
+            grader_type = eval_data.get("grader", {}).get("type")
+            return agent_task(task_prompt, work_dir, script_path=script_path, grader_type=grader_type)
         else:
             return agent_task(task_prompt, work_dir, model_name=model)
 
@@ -271,9 +279,11 @@ def batch(eval_dir, agent, model, script_path, output, parallel, keep_workspace)
                 runner = EvalRunner(eval_file, keep_workspace=keep_workspace, run_id=run_id)
 
                 _, agent_task = agent_registry[agent]
+                eval_data = json.loads(eval_file.read_text())
                 def agent_fn(task_prompt, work_dir):
                     if agent == "local":
-                        return agent_task(task_prompt, work_dir, script_path=script_path)
+                        grader_type = eval_data.get("grader", {}).get("type")
+                        return agent_task(task_prompt, work_dir, script_path=script_path, grader_type=grader_type)
                     else:
                         return agent_task(task_prompt, work_dir, model_name=model)
 

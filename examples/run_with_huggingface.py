@@ -4,7 +4,7 @@ Run SpatialBench evaluations with a local Hugging Face model via transformers.
 
 Usage:
     pip install "transformers>=4.40" torch
-    HF_MODEL=Qwen/Qwen2.5-Coder-7B-Instruct \
+    HF_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct \
       spatialbench run evals_canonical/qc/my_eval.json \
       --agent local --script-path examples/run_with_huggingface.py
 
@@ -101,6 +101,8 @@ def main():
             add_generation_prompt=True,
             return_tensors="pt",
         )
+        if hasattr(input_ids, "input_ids"):
+            input_ids = input_ids.input_ids
     else:
         # Fallback formatting for base models without chat templates.
         prompt = (
