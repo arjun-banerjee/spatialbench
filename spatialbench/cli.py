@@ -27,7 +27,7 @@ def run_local_code_task(task_prompt, work_dir, script_path=None, **kwargs):
         script_path: Path to Python script to execute
     """
     work_dir = Path(work_dir)
-    script_path = Path(script_path) if script_path else None
+    script_path = Path(script_path).expanduser().resolve() if script_path else None
     
     if not script_path or not script_path.exists():
         raise ValueError(f"Script path does not exist: {script_path}")
@@ -149,6 +149,7 @@ def run(eval_path, keep_workspace, verbose, agent, model, script_path):
         if not script_path:
             click.echo("Error: --script-path is required when using --agent local", err=True)
             return
+        script_path = str(Path(script_path).expanduser().resolve())
         click.echo(f"Using {agent_name} with script: {script_path}")
     else:
         click.echo(f"Using {agent_name}{f' with model: {model}' if model else ''}")
@@ -196,6 +197,8 @@ def batch(eval_dir, agent, model, script_path, output, parallel, keep_workspace)
     if agent == "local" and not script_path:
         click.echo("Error: --script-path is required when using --agent local", err=True)
         return
+    if script_path:
+        script_path = str(Path(script_path).expanduser().resolve())
 
     click.echo("\n" + "=" * 80)
     click.echo("STEP 1: Collecting datasets from all evaluations")
