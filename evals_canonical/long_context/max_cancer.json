@@ -1,0 +1,17 @@
+{
+  "id": "cervilla_2026_immune_infiltration_across_cancers",
+  "task": "Which cancer type has the highest immune cell infiltration across all six tumor samples?\n\nA) Colorectal adenocarcinoma\nB) Breast infiltrating carcinoma\nC) Diffuse large B-cell lymphoma\nD) Ovarian high-grade serous carcinoma\n\nReturn a JSON object with the field: answer (the letter of your choice)",
+  "data_node": "latch://185183673.node",
+  "grader": {
+    "type": "multiple_choice",
+    "config": {
+      "correct_answer": "C"
+    }
+  },
+  "notes": "The model must open all six tumor sample files and compute immune cell fractions from cell type annotations. Lymphoma is repeatedly highlighted in the paper as having exceptionally high immune cell content, and is used alongside lung as the primary example for immune subtype analyses. The answer cannot be retrieved from the paper text directly and requires actual data analysis.",
+  "metadata": {
+    "task": "cell_type_composition",
+    "time_horizon": "long",
+    "kit": "cervilla_2026_spatial_benchmarking"
+  }
+}
