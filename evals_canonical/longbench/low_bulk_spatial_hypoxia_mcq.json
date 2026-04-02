@@ -1,0 +1,17 @@
+{
+  "id": "low_bulk_spatial_hypoxia_mcq",
+  "task": "You are analyzing tumor clusters in a spatial transcriptomics dataset in pdac_visium_all_samples_raw.h5ad. \n\nPerform the following steps in order:\n\nStep 1 — Clustering\nCluster the cells or spots using an appropriate unsupervised workflow after preprocessing and dimensionality reduction.\n\nStep 2 — Marker gene identification\nFor each cluster, identify marker genes that are significantly enriched relative to the other clusters.\n\nStep 3 — Functional enrichment\nRun Gene Ontology and/or pathway enrichment analysis on the marker genes for each cluster.\n\nStep 4 — Pathway prioritization\nFor each cluster, select the most significantly enriched pathways and use them to characterize the biological identity or state of the cluster.\n\nBased on the enrichment results, answer the following question:\n\nWhich statement best matches the interpretation of the basal PDAC tumor clusters?\n\nA) Hypoxia and EMT are upregulated pathways in basal PDAC tumor clusters.\nB) Oxidative phosphorylation and adipogenesis are the dominant pathways in basal PDAC tumor clusters.\nC) Cell-cycle arrest and neuronal signaling are the defining pathways in basal PDAC tumor clusters.\nD) Interferon signaling and bile acid metabolism are the only enriched pathways in basal PDAC tumor clusters.\n\nReturn JSON: {\"answer\": \"<letter>\"}.",
+  "data_node": "latch://185927289.node",
+  "grader": {
+    "type": "multiple_choice",
+    "config": {
+      "correct_answer": "A"
+    }
+  },
+  "notes": "None",
+  "metadata": {
+    "task": "spatial_analysis",
+    "time_horizon": "long",
+    "kit": "xenium"
+  }
+}

@@ -1,0 +1,40 @@
+{
+    "id": "low_bulk_spatial_hypoxia_num",
+    "task": "Using pdac_visium_all_samples_raw.h5ad, perform the following steps in order:\n\nStep 1 — Preprocessing and clustering\nNormalize, log-transform, and select highly variable genes. Run PCA, construct a neighbor graph, and cluster spots using the Leiden algorithm. Annotate clusters using known basal PDAC marker genes (e.g., KRT5, KRT14, TP63, VGLL1).\n\nStep 2 — Marker gene identification\nFor the cluster(s) annotated as basal PDAC tumor spots, run a differential expression test (e.g., Wilcoxon rank-sum) against all other clusters. Retain genes with adjusted p-value < 0.05 as marker genes.\n\nStep 3 — Functional enrichment\nRun Gene Ontology Biological Process enrichment (e.g., using gseapy.enrichr or equivalent) on the marker gene list for the basal PDAC cluster(s).\n\nStep 4 — Extract enrichment statistics\nFrom the enrichment results, extract the -log10(q-value) and the gene count for BOTH of the following GO terms:\n- 'Epithelial Mesenchymal Transition'\n- 'Hypoxia'\n\nIf multiple basal clusters exist, report the values for the cluster with the strongest EMT enrichment signal.\n\nReturn EXACTLY: {\"emt_neg_log10_qvalue\": <float>, \"emt_gene_count\": <int>, \"hypoxia_neg_log10_qvalue\": <float>, \"hypoxia_gene_count\": <int>}.",
+    "data_node": "latch://185927289.node",
+    "grader": {
+      "type": "numeric_tolerance",
+      "config": {
+        "ground_truth": {
+          "emt_neg_log10_qvalue": 45.0,
+          "emt_gene_count": 45,
+          "hypoxia_neg_log10_qvalue": 45.0,
+          "hypoxia_gene_count": 45
+        },
+        "tolerances": {
+          "emt_neg_log10_qvalue": {
+            "type": "absolute",
+            "value": 5.0
+          },
+          "emt_gene_count": {
+            "type": "absolute",
+            "value": 5
+          },
+          "hypoxia_neg_log10_qvalue": {
+            "type": "absolute",
+            "value": 5.0
+          },
+          "hypoxia_gene_count": {
+            "type": "absolute",
+            "value": 5
+          }
+        }
+      }
+    },
+    "notes": "GO term names may vary by enrichment library. Accept 'epithelial to mesenchymal transition', 'EMT', or equivalent. Basal PDAC cluster annotation should use marker genes, not assumed cluster indices. Gene names may be stored in var['feature_name'] or var['gene_symbols'] depending on the h5ad structure.",
+    "metadata": {
+      "task": "spatial_analysis",
+      "time_horizon": "long",
+      "kit": "visium"
+    }
+  }
