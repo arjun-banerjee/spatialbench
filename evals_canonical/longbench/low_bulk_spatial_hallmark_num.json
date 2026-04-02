@@ -1,0 +1,35 @@
+{
+  "id": "low_bulk_spatial_hallmark_num",
+  "task": "Using the Visium spatial transcriptomics data, perform the following steps:\n\nStep 1 — Preprocess: Normalize, filter, and integrate across patients.\n\nStep 2 — Cluster: Leiden clustering with subseting tumor spots, re-integratation with RPCA, and reclustering.\n\nStep 3 — Annotate: Label the 7 tumor clusters using marker genes.\n\nStep 4 — Score Hallmark Hypoxia for each spot \n\nStep 5 — Extract: For each cluster report median, Q1, Q3 of UCell hypoxia scores.\n\nReturn EXACTLY:\n{\n  \"ductal_like_median\": <float>,\n  \"ductal_like_q1\": <float>,\n  \"ductal_like_q3\": <float>,\n  \"classical_pdac_median\": <float>,\n  \"classical_pdac_q1\": <float>,\n  \"classical_pdac_q3\": <float>,\n  \"basal_pdac_median\": <float>,\n  \"basal_pdac_q1\": <float>,\n  \"basal_pdac_q3\": <float>\n}",
+  "data_node": "latch://185927289.node",
+  "grader": {
+    "type": "numeric_tolerance",
+    "config": {
+      "ground_truth": {
+        "basal_pdac_median": 0.30,
+        "basal_pdac_q1": 0.22,
+        "basal_pdac_q3": 0.32,
+        "classical_pdac_median": 0.19,
+        "classical_pdac_q1": 0.16,
+        "classical_pdac_q3": 0.21,
+        "ductal_like_median": 0.18,
+        "ductal_like_q1": 0.15,
+        "ductal_like_q3": 0.20
+      },
+      "tolerances": {
+        "basal_pdac_median": {"type": "absolute", "value": 0.05},
+        "classical_pdac_median": {"type": "absolute", "value": 0.05},
+        "ductal_like_median": {"type": "absolute", "value": 0.05}
+      }
+    }
+  },
+  "notes": "Cluster annotation must be marker-gene driven. SCTransform v2 for normalization. Harmony uses patient ID as batch variable. Tumor re-clustering uses RPCA not Harmony.",
+  "metadata": {
+    "task": "spatial_analysis",
+    "time_horizon": "long",
+    "kit": "visium",
+    "n_patients": 39,
+    "n_spots_total": 341949,
+    "n_tumor_spots": 59403
+  }
+}

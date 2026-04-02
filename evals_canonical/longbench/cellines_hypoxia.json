@@ -1,0 +1,60 @@
+{
+  "id": "cellines_hypoxia",
+  "task": "Using the PDAC cell line bulk RNA-seq dataset, compute PDAC subtype biomarker scores as mean z-score log2 CPM for basal (B.) and classical (C.) marker gene sets under hypoxia and normoxia conditions.\n\nFor each of the following cell lines — ASPC1, PACADD188, PANC0203, PANC0403, PANC1 — report the MEDIAN biomarker score across genes for each combination of biomarker type (basal, classical) and condition (hypoxia, normoxia).\n\nReturn EXACTLY:\n{\n  \"ASPC1_basal_hypoxia\": <float>,\n  \"ASPC1_basal_normoxia\": <float>,\n  \"ASPC1_classical_hypoxia\": <float>,\n  \"ASPC1_classical_normoxia\": <float>,\n  \"PACADD188_basal_hypoxia\": <float>,\n  \"PACADD188_basal_normoxia\": <float>,\n  \"PACADD188_classical_hypoxia\": <float>,\n  \"PACADD188_classical_normoxia\": <float>,\n  \"PANC0203_basal_hypoxia\": <float>,\n  \"PANC0203_basal_normoxia\": <float>,\n  \"PANC0203_classical_hypoxia\": <float>,\n  \"PANC0203_classical_normoxia\": <float>,\n  \"PANC0403_basal_hypoxia\": <float>,\n  \"PANC0403_basal_normoxia\": <float>,\n  \"PANC0403_classical_hypoxia\": <float>,\n  \"PANC0403_classical_normoxia\": <float>,\n  \"PANC1_basal_hypoxia\": <float>,\n  \"PANC1_basal_normoxia\": <float>,\n  \"PANC1_classical_hypoxia\": <float>,\n  \"PANC1_classical_normoxia\": <float>\n}",
+  "data_node": "latch://185927289.node",
+  "grader": {
+    "type": "numeric_tolerance",
+    "config": {
+      "ground_truth": {
+        "ASPC1_basal_hypoxia": -0.3,
+        "ASPC1_basal_normoxia": -0.4,
+        "ASPC1_classical_hypoxia": 1.0,
+        "ASPC1_classical_normoxia": 1.1,
+        "PACADD188_basal_hypoxia": -0.3,
+        "PACADD188_basal_normoxia": -0.4,
+        "PACADD188_classical_hypoxia": -0.3,
+        "PACADD188_classical_normoxia": -0.2,
+        "PANC0203_basal_hypoxia": 0.7,
+        "PANC0203_basal_normoxia": 0.8,
+        "PANC0203_classical_hypoxia": -0.3,
+        "PANC0203_classical_normoxia": 0.3,
+        "PANC0403_basal_hypoxia": 0.7,
+        "PANC0403_basal_normoxia": 0.7,
+        "PANC0403_classical_hypoxia": 0.5,
+        "PANC0403_classical_normoxia": 0.6,
+        "PANC1_basal_hypoxia": -0.6,
+        "PANC1_basal_normoxia": -0.5,
+        "PANC1_classical_hypoxia": -0.5,
+        "PANC1_classical_normoxia": -0.5
+      },
+      "tolerances": {
+        "ASPC1_basal_hypoxia":          {"type": "absolute", "value": 0.2},
+        "ASPC1_basal_normoxia":         {"type": "absolute", "value": 0.2},
+        "ASPC1_classical_hypoxia":      {"type": "absolute", "value": 0.2},
+        "ASPC1_classical_normoxia":     {"type": "absolute", "value": 0.2},
+        "PACADD188_basal_hypoxia":      {"type": "absolute", "value": 0.2},
+        "PACADD188_basal_normoxia":     {"type": "absolute", "value": 0.2},
+        "PACADD188_classical_hypoxia":  {"type": "absolute", "value": 0.2},
+        "PACADD188_classical_normoxia": {"type": "absolute", "value": 0.2},
+        "PANC0203_basal_hypoxia":       {"type": "absolute", "value": 0.2},
+        "PANC0203_basal_normoxia":      {"type": "absolute", "value": 0.2},
+        "PANC0203_classical_hypoxia":   {"type": "absolute", "value": 0.2},
+        "PANC0203_classical_normoxia":  {"type": "absolute", "value": 0.2},
+        "PANC0403_basal_hypoxia":       {"type": "absolute", "value": 0.2},
+        "PANC0403_basal_normoxia":      {"type": "absolute", "value": 0.2},
+        "PANC0403_classical_hypoxia":   {"type": "absolute", "value": 0.2},
+        "PANC0403_classical_normoxia":  {"type": "absolute", "value": 0.2},
+        "PANC1_basal_hypoxia":          {"type": "absolute", "value": 0.2},
+        "PANC1_basal_normoxia":         {"type": "absolute", "value": 0.2},
+        "PANC1_classical_hypoxia":      {"type": "absolute", "value": 0.2},
+        "PANC1_classical_normoxia":     {"type": "absolute", "value": 0.2}
+      }
+    }
+  },
+  "notes": "Basal and classical marker gene lists must be provided or referenced. Scores are median per-gene mean z-score log2 CPM values per condition. A model hacking from literature will not know the absolute scale of these scores — it can only know the relative ordering (basal < classical for ASPC1, etc.), making exact median values unguessable without computation.",
+  "metadata": {
+    "task": "bulk_rna_subtype_scoring",
+    "time_horizon": "medium",
+    "kit": "bulk_rnaseq"
+  }
+}
