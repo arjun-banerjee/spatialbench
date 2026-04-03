@@ -1,0 +1,25 @@
+{
+    "id": "noin_noans",
+    "task": "You are analyzing a Curio Seeker spatial transcriptomics dataset of mouse ovary tissue collected across eight developmental time points (Immature, 0hr, 1hr, 4hr, 6hr, 8hr, 11hr, 12hr post-hCG).\n\nStarting from the raw data, which statement best describes the relative abundance of stromal vs. follicular compartments in the mouse ovary?\n\n1. Granulosa cells dominate (~50%+), with Mesenchyme as the second most abundant (~30%) — follicular compartment exceeds stroma\n2. Mesenchyme dominates (~50%+), with Granulosa as second — stromal compartment exceeds follicular\n3. Granulosa and Mesenchyme are present in roughly equal proportions (~35–40% each)\n4. Endothelium is the second most abundant cell type after Granulosa, reflecting the highly vascularized nature of the ovary\n5. Immune cells constitute more than 10% of on-tissue beads, consistent with active inflammatory recruitment during superovulation\n6. Oocytes are the most spatially abundant cell type, as each follicle is organized around a single large oocyte\n7. Epithelium is the dominant non-follicular population, covering more than 20% of the tissue\n8. All six cell types are present in roughly equal proportions (~15% each)\n\nReturn EXACTLY:\n\n<EVAL_ANSWER>\n{\"stromal_vs_follicular_answer\": <int>}\n</EVAL_ANSWER>",
+    "data_node": "latch://173892278.node",
+    "grader": {
+      "type": "numeric_tolerance",
+      "config": {
+        "tolerances": {
+          "stromal_vs_follicular_answer": {
+            "type": "absolute",
+            "value": 0
+          }
+        },
+        "ground_truth": {
+          "stromal_vs_follicular_answer": 1
+        }
+      }
+    },
+    "notes": "The model must open all six tumor sample files and compute immune cell fractions from cell type annotations. Lymphoma is repeatedly highlighted in the paper as having exceptionally high immune cell content, and is used alongside lung as the primary example for immune subtype analyses. The answer cannot be retrieved from the paper text directly and requires actual data analysis.",
+    "metadata": {
+      "task": "cell_type_composition",
+      "time_horizon": "long",
+      "kit": "cervilla_2026_spatial_benchmarking"
+    }
+  }

@@ -1,29 +1,110 @@
 {
   "id": "low_bulk_spatial_hallmark_num",
-  "task": "Using the Visium spatial transcriptomics data, perform the following steps:\n\nStep 1 — Preprocess: Normalize, filter, and integrate across patients.\n\nStep 2 — Cluster: Leiden clustering with subseting tumor spots, re-integratation with RPCA, and reclustering.\n\nStep 3 — Annotate: Label the 7 tumor clusters using marker genes.\n\nStep 4 — Score Hallmark Hypoxia for each spot \n\nStep 5 — Extract: For each cluster report median, Q1, Q3 of UCell hypoxia scores.\n\nReturn EXACTLY:\n{\n  \"ductal_like_median\": <float>,\n  \"ductal_like_q1\": <float>,\n  \"ductal_like_q3\": <float>,\n  \"classical_pdac_median\": <float>,\n  \"classical_pdac_q1\": <float>,\n  \"classical_pdac_q3\": <float>,\n  \"basal_pdac_median\": <float>,\n  \"basal_pdac_q1\": <float>,\n  \"basal_pdac_q3\": <float>\n}",
+  "task": "Using the Visium spatial transcriptomics data, identify and characterize PDAC tumor subtypes and quantify their Hallmark Hypoxia activity. Sort clusters by number of spots descending (cluster_1 = largest). \n\nReturn EXACTLY:\n\n<EVAL_ANSWER>\n{\n  \"n_patients_loaded\": <int>,\n  \"n_spots_total\": <int>,\n  \"n_tumor_spots\": <int>,\n  \"n_tumor_clusters\": <int>,\n  \"clusters\": [\n    {\n      \"label\": \"cluster_1\",\n      \"n_spots\": <int>,\n      \"numeric_fields\": {\n        \"hypoxia_median\": <float>\n      }\n    },\n    ...\n  ]\n}\n</EVAL_ANSWER>",
   "data_node": "latch://185927289.node",
   "grader": {
-    "type": "numeric_tolerance",
+    "type": "composite",
     "config": {
-      "ground_truth": {
-        "basal_pdac_median": 0.30,
-        "basal_pdac_q1": 0.22,
-        "basal_pdac_q3": 0.32,
-        "classical_pdac_median": 0.19,
-        "classical_pdac_q1": 0.16,
-        "classical_pdac_q3": 0.21,
-        "ductal_like_median": 0.18,
-        "ductal_like_q1": 0.15,
-        "ductal_like_q3": 0.20
+      "scoring": "mean",
+      "weights": {
+        "data_loading":    0.20,
+        "cluster_biology": 0.80
       },
-      "tolerances": {
-        "basal_pdac_median": {"type": "absolute", "value": 0.05},
-        "classical_pdac_median": {"type": "absolute", "value": 0.05},
-        "ductal_like_median": {"type": "absolute", "value": 0.05}
-      }
+      "graders": [
+        {
+          "id": "data_loading",
+          "type": "numeric_tolerance",
+          "config": {
+            "ground_truth": {
+              "n_patients_loaded": 39,
+              "n_spots_total":     341949,
+              "n_tumor_spots":     59403,
+              "n_tumor_clusters":  7
+            },
+            "tolerances": {
+              "n_patients_loaded": {"type": "absolute", "value": 0},
+              "n_spots_total":     {"type": "relative", "value": 0.02},
+              "n_tumor_spots":     {"type": "relative", "value": 0.05},
+              "n_tumor_clusters":  {"type": "absolute", "value": 0}
+            }
+          }
+        },
+        {
+          "id": "cluster_biology",
+          "type": "cluster_jaccard_numeric",
+          "config": {
+            "size_tolerance": 0.20,
+            "match_by": "n_spots",
+            "ground_truth_clusters": {
+              "cluster_1": {
+                "n_spots": 11034,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.19,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_2": {
+                "n_spots": 9279,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.18,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_3": {
+                "n_spots": 8896,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.20,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_4": {
+                "n_spots": 8038,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.22,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_5": {
+                "n_spots": 6010,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.30,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_6": {
+                "n_spots": 6002,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.18,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              },
+              "cluster_7": {
+                "n_spots": 5960,
+                "numeric_fields": {
+                  "hypoxia_median": {
+                    "ground_truth": 0.25,
+                    "tolerance": {"type": "absolute", "value": 0.05}
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   },
-  "notes": "Cluster annotation must be marker-gene driven. SCTransform v2 for normalization. Harmony uses patient ID as batch variable. Tumor re-clustering uses RPCA not Harmony.",
   "metadata": {
     "task": "spatial_analysis",
     "time_horizon": "long",

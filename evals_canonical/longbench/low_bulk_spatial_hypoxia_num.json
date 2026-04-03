@@ -1,40 +1,158 @@
 {
-    "id": "low_bulk_spatial_hypoxia_num",
-    "task": "Using pdac_visium_all_samples_raw.h5ad, perform the following steps in order:\n\nStep 1 — Preprocessing and clustering\nNormalize, log-transform, and select highly variable genes. Run PCA, construct a neighbor graph, and cluster spots using the Leiden algorithm. Annotate clusters using known basal PDAC marker genes (e.g., KRT5, KRT14, TP63, VGLL1).\n\nStep 2 — Marker gene identification\nFor the cluster(s) annotated as basal PDAC tumor spots, run a differential expression test (e.g., Wilcoxon rank-sum) against all other clusters. Retain genes with adjusted p-value < 0.05 as marker genes.\n\nStep 3 — Functional enrichment\nRun Gene Ontology Biological Process enrichment (e.g., using gseapy.enrichr or equivalent) on the marker gene list for the basal PDAC cluster(s).\n\nStep 4 — Extract enrichment statistics\nFrom the enrichment results, extract the -log10(q-value) and the gene count for BOTH of the following GO terms:\n- 'Epithelial Mesenchymal Transition'\n- 'Hypoxia'\n\nIf multiple basal clusters exist, report the values for the cluster with the strongest EMT enrichment signal.\n\nReturn EXACTLY: {\"emt_neg_log10_qvalue\": <float>, \"emt_gene_count\": <int>, \"hypoxia_neg_log10_qvalue\": <float>, \"hypoxia_gene_count\": <int>}.",
-    "data_node": "latch://185927289.node",
-    "grader": {
-      "type": "numeric_tolerance",
-      "config": {
-        "ground_truth": {
-          "emt_neg_log10_qvalue": 45.0,
-          "emt_gene_count": 45,
-          "hypoxia_neg_log10_qvalue": 45.0,
-          "hypoxia_gene_count": 45
+  "id": "low_bulk_spatial_hypoxia_num",
+  "task": "Using the Visium spatial transcriptomics data, identify and characterize PDAC tumor subtypes and characterize through its differentially expressed marker genes, specifically for Epithelial Mesenchymal Transition and Hypoxia. Sort clusters by number of spots descending (cluster_1 = largest).\n\nReturn EXACTLY:\n\n<EVAL_ANSWER>\n{\n  \"n_patients_loaded\": <int>,\n  \"n_spots_total\": <int>,\n  \"n_tumor_spots\": <int>,\n  \"n_tumor_clusters\": <int>,\n  \"clusters\": [\n    {\n      \"label\": \"cluster_1\",\n      \"n_spots\": <int>,\n      \"marker_sets\": {\n        \"top_markers\": [<str>, ...]\n      },\n      \"numeric_fields\": {\n        \"emt_neg_log10_qvalue\": <float>,\n        \"emt_gene_count\": <int>,\n        \"hypoxia_neg_log10_qvalue\": <float>,\n        \"hypoxia_gene_count\": <int>\n      }\n    },\n    ...\n  ]\n}\n</EVAL_ANSWER>",
+  "data_node": "latch://185927289.node",
+  "grader": {
+    "type": "composite",
+    "config": {
+      "scoring": "mean",
+      "weights": {
+        "data_loading":    0.15,
+        "cluster_biology": 0.85
+      },
+      "graders": [
+        {
+          "id": "data_loading",
+          "type": "numeric_tolerance",
+          "config": {
+            "ground_truth": {
+              "n_patients_loaded": 39,
+              "n_spots_total":     341949,
+              "n_tumor_spots":     59403,
+              "n_tumor_clusters":  7
+            },
+            "tolerances": {
+              "n_patients_loaded": {"type": "absolute", "value": 0},
+              "n_spots_total":     {"type": "relative", "value": 0.02},
+              "n_tumor_spots":     {"type": "relative", "value": 0.05},
+              "n_tumor_clusters":  {"type": "absolute", "value": 0}
+            }
+          }
         },
-        "tolerances": {
-          "emt_neg_log10_qvalue": {
-            "type": "absolute",
-            "value": 5.0
-          },
-          "emt_gene_count": {
-            "type": "absolute",
-            "value": 5
-          },
-          "hypoxia_neg_log10_qvalue": {
-            "type": "absolute",
-            "value": 5.0
-          },
-          "hypoxia_gene_count": {
-            "type": "absolute",
-            "value": 5
+        {
+          "id": "cluster_biology",
+          "type": "cluster_jaccard_numeric",
+          "config": {
+            "size_tolerance": 0.20,
+            "match_by": "n_spots",
+            "ground_truth_clusters": {
+              "cluster_1": {
+                "n_spots": 11034,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["TFF1", "PSCA", "AGR2", "CEACAM5", "CEACAM6", "MUC13", "MUC1"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_2": {
+                "n_spots": 9279,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["MUC6", "MUC5B", "CRP", "CLU"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_3": {
+                "n_spots": 8896,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["UBE2C", "MCM7", "CKS1B", "TOP2A", "CDC20", "MKI67", "CENPF", "CDK1", "CCNB1"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 20.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 20,   "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_4": {
+                "n_spots": 8038,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["KLK7", "KLK6", "KRT13", "LY6D", "CCL20", "CD9"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 35.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 35,   "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 10.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 10,   "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_5": {
+                "n_spots": 6010,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["KRT5", "KRT6A", "KRT14", "KRT17", "SLC2A1", "NDRG1"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 50.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 50,   "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 45.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 45,   "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_6": {
+                "n_spots": 6002,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["OLFM4", "DMBT1", "MUC20"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 0.0,  "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 0,    "tolerance": {"type": "absolute", "value": 5}}
+                }
+              },
+              "cluster_7": {
+                "n_spots": 5960,
+                "marker_sets": {
+                  "top_markers": {
+                    "canonical_markers": ["COL1A1", "COL1A2", "FN1"],
+                    "scoring": {"min_precision": 0.3, "min_recall": 0.3}
+                  }
+                },
+                "numeric_fields": {
+                  "emt_neg_log10_qvalue":     {"ground_truth": 10.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "emt_gene_count":           {"ground_truth": 10,   "tolerance": {"type": "absolute", "value": 5}},
+                  "hypoxia_neg_log10_qvalue": {"ground_truth": 10.0, "tolerance": {"type": "absolute", "value": 5.0}},
+                  "hypoxia_gene_count":       {"ground_truth": 10,   "tolerance": {"type": "absolute", "value": 5}}
+                }
+              }
+            }
           }
         }
-      }
-    },
-    "notes": "GO term names may vary by enrichment library. Accept 'epithelial to mesenchymal transition', 'EMT', or equivalent. Basal PDAC cluster annotation should use marker genes, not assumed cluster indices. Gene names may be stored in var['feature_name'] or var['gene_symbols'] depending on the h5ad structure.",
-    "metadata": {
-      "task": "spatial_analysis",
-      "time_horizon": "long",
-      "kit": "visium"
+      ]
     }
+  },
+  "metadata": {
+    "task": "spatial_analysis",
+    "time_horizon": "long",
+    "kit": "visium",
+    "n_patients": 39,
+    "n_spots_total": 341949,
+    "n_tumor_spots": 59403
   }
+}
